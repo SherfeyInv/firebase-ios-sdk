@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'FirebaseStorage'
-  s.version          = '10.25.0'
+  s.version          = '10.27.0'
   s.summary          = 'Firebase Storage'
 
   s.description      = <<-DESC
@@ -38,7 +38,7 @@ Firebase Storage provides robust, secure file uploads and downloads from Firebas
   ]
 
   s.dependency 'FirebaseAppCheckInterop', '~> 10.0'
-  s.dependency 'FirebaseAuthInterop', '~> 10.0'
+  s.dependency 'FirebaseAuthInterop', '~> 10.25'
   s.dependency 'FirebaseCore', '~> 10.0'
   s.dependency 'FirebaseCoreExtension', '~> 10.0'
   s.dependency 'GTMSessionFetcher/Core', '>= 2.1', '< 4.0'

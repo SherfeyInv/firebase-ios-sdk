@@ -1,4 +1,8 @@
 # Unreleased
+- [changed] Update internal socket implementation to use `NSURLSessionWebSocket` where
+  available. (#12883)
+
+# 10.25.0
 - [changed] Removed usages of user defaults API to eliminate required reason impact.
 
 # 10.17.0
