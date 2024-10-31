@@ -25,8 +25,12 @@ class EmailPasswordTests: TestsBase {
   /// ** The testing email address for testSignInExistingUserWithEmailAndPassword. */
   let kExistingEmailToSignIn = "user+email_existing_user@example.com"
 
-  func testCreateAccountWithEmailAndPassword() {
+  func testCreateAccountWithEmailAndPassword() async throws {
     let auth = Auth.auth()
+    // Ensure the account that will be created does not already exist.
+    let result = try? await auth.signIn(withEmail: kNewEmailToCreateUser, password: "password")
+    try? await result?.user.delete()
+
     let expectation = self.expectation(description: "Created account with email and password.")
     auth.createUser(withEmail: kNewEmailToCreateUser, password: "password") { result, error in
       if let error {
@@ -34,13 +38,18 @@ class EmailPasswordTests: TestsBase {
       }
       expectation.fulfill()
     }
-    waitForExpectations(timeout: TestsBase.kExpectationsTimeout)
+    await fulfillment(of: [expectation], timeout: TestsBase.kExpectationsTimeout)
+
     XCTAssertEqual(auth.currentUser?.email, kNewEmailToCreateUser, "Expected email doesn't match")
-    deleteCurrentUser()
+    try? await deleteCurrentUserAsync()
   }
 
   func testCreateAccountWithEmailAndPasswordAsync() async throws {
     let auth = Auth.auth()
+    // Ensure the account that will be created does not already exist.
+    let result = try? await auth.signIn(withEmail: kNewEmailToCreateUser, password: "password")
+    try? await result?.user.delete()
+
     try await auth.createUser(withEmail: kNewEmailToCreateUser, password: "password")
     XCTAssertEqual(auth.currentUser?.email, kNewEmailToCreateUser, "Expected email doesn't match")
     try await deleteCurrentUserAsync()
@@ -60,12 +69,15 @@ class EmailPasswordTests: TestsBase {
     waitForExpectations(timeout: TestsBase.kExpectationsTimeout)
   }
 
-  @available(iOS 13, tvOS 13, macOS 10.15, macCatalyst 13, watchOS 7, *)
   func testSignInExistingUserWithEmailAndPasswordAsync() async throws {
     let auth = Auth.auth()
     try await auth.signIn(withEmail: kExistingEmailToSignIn, password: "password")
     XCTAssertEqual(auth.currentUser?.email,
                    kExistingEmailToSignIn,
                    "Signed user does not match request.")
+    // Regression test for #13550. Auth enumeration protection is enabled for
+    // the test project, so no sign in methods should be returned.
+    let signInMethods = try await auth.fetchSignInMethods(forEmail: kExistingEmailToSignIn)
+    XCTAssertEqual(signInMethods, [])
   }
 }

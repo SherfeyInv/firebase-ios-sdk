@@ -19,7 +19,7 @@
 import class Foundation.ProcessInfo
 import PackageDescription
 
-let firebaseVersion = "11.1.0"
+let firebaseVersion = "11.5.0"
 
 let package = Package(
   name: "Firebase",
@@ -70,6 +70,10 @@ let package = Package(
       targets: ["FirebaseStorageCombineSwift"]
     ),
     .library(
+      name: "FirebaseCore",
+      targets: ["FirebaseCore"]
+    ),
+    .library(
       name: "FirebaseCrashlytics",
       targets: ["FirebaseCrashlytics"]
     ),
@@ -118,7 +122,7 @@ let package = Package(
       targets: ["FirebaseStorage"]
     ),
     .library(
-      name: "FirebaseVertexAI-Preview",
+      name: "FirebaseVertexAI",
       targets: ["FirebaseVertexAI"]
     ),
   ],
@@ -142,7 +146,7 @@ let package = Package(
     ),
     .package(
       url: "https://github.com/google/gtm-session-fetcher.git",
-      "3.4.1" ..< "4.0.0"
+      "3.4.1" ..< "5.0.0"
     ),
     .package(
       url: "https://github.com/firebase/nanopb.git",
@@ -150,15 +154,10 @@ let package = Package(
     ),
     abseilDependency(),
     grpcDependency(),
-    // TODO: restore OCMock when https://github.com/erikdoe/ocmock/pull/537
-    // gets merged to fix Xcode 15.3 builds.
     .package(
-      url: "https://github.com/paulb777/ocmock.git",
-      revision: "173955e93e6ee6999a10729ab67e4b4efdd1db6d"
+      url: "https://github.com/erikdoe/ocmock.git",
+      revision: "2c0bfd373289f4a7716db5d6db471640f91a6507"
     ),
-//      url: "https://github.com/erikdoe/ocmock.git",
-//      revision: "c5eeaa6dde7c308a5ce48ae4d4530462dd3a1110"
-//    ),
     .package(
       url: "https://github.com/firebase/leveldb.git",
       "1.22.2" ..< "1.23.0"
@@ -304,8 +303,8 @@ let package = Package(
     ),
     .binaryTarget(
       name: "FirebaseAnalytics",
-      url: "https://dl.google.com/firebase/ios/swiftpm/11.0.0/rc2/FirebaseAnalytics.zip",
-      checksum: "3dffe84e22f11691c147c5f83ba83b66172bb5c11fe09a077f2dd5f8bbd8e2bc"
+      url: "https://dl.google.com/firebase/ios/swiftpm/11.4.0/FirebaseAnalytics.zip",
+      checksum: "fb0d7cd992ffdcd82ed5c5fdb83e50ac983664f1dde81b140a0ddaa1aa66baae"
     ),
     .testTarget(
       name: "AnalyticsSwiftUnit",
@@ -461,8 +460,10 @@ let package = Package(
         // TODO: these tests rely on a non-zero UIApplication.shared. They run from CocoaPods.
         "PhoneAuthProviderTests.swift",
         "AuthNotificationManagerTests.swift",
-        "ObjCAPITests.m", // Only builds via CocoaPods until mixed language or its own target.
-        "ObjCGlobalTests.m", // Only builds via CocoaPods until mixed language or its own target.
+        // TODO: The following tests run in CocoaPods only, until mixed language or separate target.
+        "ObjCAPITests.m",
+        "ObjCGlobalTests.m",
+        "FIROAuthProviderTests.m",
       ]
     ),
     .target(
@@ -1308,21 +1309,14 @@ let package = Package(
     ),
     .testTarget(
       name: "FirebaseVertexAIUnit",
-      dependencies: ["FirebaseVertexAI", "SharedTestUtilities"],
+      dependencies: ["FirebaseVertexAI"],
       path: "FirebaseVertexAI/Tests/Unit",
       resources: [
         .process("vertexai-sdk-test-data/mock-responses"),
+        .process("Resources"),
       ],
       cSettings: [
         .headerSearchPath("../../../"),
-      ]
-    ),
-    .testTarget(
-      name: "FirebaseVertexAIIntegration",
-      dependencies: ["FirebaseVertexAI"],
-      path: "FirebaseVertexAI/Tests/Integration",
-      resources: [
-        .process("Resources"),
       ]
     ),
   ] + firestoreTargets(),
@@ -1341,7 +1335,7 @@ func googleAppMeasurementDependency() -> Package.Dependency {
     return .package(url: appMeasurementURL, branch: "main")
   }
 
-  return .package(url: appMeasurementURL, exact: "11.0.0")
+  return .package(url: appMeasurementURL, exact: "11.4.0")
 }
 
 func abseilDependency() -> Package.Dependency {
@@ -1510,8 +1504,8 @@ func firestoreTargets() -> [Target] {
     } else {
       return .binaryTarget(
         name: "FirebaseFirestoreInternal",
-        url: "https://dl.google.com/firebase/ios/bin/firestore/11.0.0/rc2/FirebaseFirestoreInternal.zip",
-        checksum: "3787634efd3d4e0aec5fac929dcc77c54d9b3765103bfe3d861da3b2315243b7"
+        url: "https://dl.google.com/firebase/ios/bin/firestore/11.4.0/rc0/FirebaseFirestoreInternal.zip",
+        checksum: "2b467ccf81306a5b7f0e7e41d2f3aa384998235306a0c33d1c973209241e9cdb"
       )
     }
   }()

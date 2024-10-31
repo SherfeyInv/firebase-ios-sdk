@@ -14,103 +14,11 @@
 
 import Foundation
 
-/// A predicted function call returned from the model.
-public struct FunctionCall: Equatable {
-  /// The name of the function to call.
-  public let name: String
-
-  /// The function parameters and values.
-  public let args: JSONObject
-}
-
-/// A `Schema` object allows the definition of input and output data types.
-///
-/// These types can be objects, but also primitives and arrays. Represents a select subset of an
-/// [OpenAPI 3.0 schema object](https://spec.openapis.org/oas/v3.0.3#schema).
-public class Schema {
-  /// The data type.
-  let type: DataType
-
-  /// The format of the data.
-  let format: String?
-
-  /// A brief description of the parameter.
-  let description: String?
-
-  /// Indicates if the value may be null.
-  let nullable: Bool?
-
-  /// Possible values of the element of type ``DataType/string`` with "enum" format.
-  let enumValues: [String]?
-
-  /// Schema of the elements of type ``DataType/array``.
-  let items: Schema?
-
-  /// Properties of type ``DataType/object``.
-  let properties: [String: Schema]?
-
-  /// Required properties of type ``DataType/object``.
-  let requiredProperties: [String]?
-
-  /// Constructs a new `Schema`.
-  ///
-  /// - Parameters:
-  ///   - type: The data type.
-  ///   - format: The format of the data; used only for primitive datatypes.
-  ///     Supported formats:
-  ///     - ``DataType/integer``: int32, int64
-  ///     - ``DataType/number``: float, double
-  ///     - ``DataType/string``: enum
-  ///   - description: A brief description of the parameter; may be formatted as Markdown.
-  ///   - nullable: Indicates if the value may be null.
-  ///   - enumValues: Possible values of the element of type ``DataType/string`` with "enum" format.
-  ///     For example, an enum `Direction` may be defined as `["EAST", NORTH", "SOUTH", "WEST"]`.
-  ///   - items: Schema of the elements of type ``DataType/array``.
-  ///   - properties: Properties of type ``DataType/object``.
-  ///   - requiredProperties: Required properties of type ``DataType/object``.
-  public init(type: DataType, format: String? = nil, description: String? = nil,
-              nullable: Bool? = nil,
-              enumValues: [String]? = nil, items: Schema? = nil,
-              properties: [String: Schema]? = nil,
-              requiredProperties: [String]? = nil) {
-    self.type = type
-    self.format = format
-    self.description = description
-    self.nullable = nullable
-    self.enumValues = enumValues
-    self.items = items
-    self.properties = properties
-    self.requiredProperties = requiredProperties
-  }
-}
-
-/// A data type.
-///
-/// Contains the set of OpenAPI [data types](https://spec.openapis.org/oas/v3.0.3#data-types).
-public enum DataType: String {
-  /// A `String` type.
-  case string = "STRING"
-
-  /// A floating-point number type.
-  case number = "NUMBER"
-
-  /// An integer type.
-  case integer = "INTEGER"
-
-  /// A boolean type.
-  case boolean = "BOOLEAN"
-
-  /// An array type.
-  case array = "ARRAY"
-
-  /// An object type.
-  case object = "OBJECT"
-}
-
 /// Structured representation of a function declaration.
 ///
 /// This `FunctionDeclaration` is a representation of a block of code that can be used as a ``Tool``
 /// by the model and executed by the client.
+@available(iOS 15.0, macOS 12.0, macCatalyst 15.0, tvOS 15.0, watchOS 8.0, *)
 public struct FunctionDeclaration {
   /// The name of the function.
   let name: String
@@ -118,7 +26,7 @@ public struct FunctionDeclaration {
   /// A brief description of the function.
   let description: String
 
-  /// Describes the parameters to this function; must be of type ``DataType/object``.
+  /// Describes the parameters to this function; must be of type `DataType.object`.
   let parameters: Schema?
 
   /// Constructs a new `FunctionDeclaration`.
@@ -127,81 +35,106 @@ public struct FunctionDeclaration {
   ///   - name: The name of the function; must be a-z, A-Z, 0-9, or contain underscores and dashes,
   ///   with a maximum length of 63.
   ///   - description: A brief description of the function.
-  ///   - parameters: Describes the parameters to this function; the keys are parameter names and
-  ///   the values are ``Schema`` objects describing them.
-  ///   - requiredParameters: A list of required parameters by name.
-  public init(name: String, description: String, parameters: [String: Schema]?,
-              requiredParameters: [String]? = nil) {
+  ///   - parameters: Describes the parameters to this function.
+  ///   - optionalParameters: The names of parameters that may be omitted by the model in function
+  ///   calls; by default, all parameters are considered required.
+  public init(name: String, description: String, parameters: [String: Schema],
+              optionalParameters: [String] = []) {
     self.name = name
     self.description = description
-    self.parameters = Schema(
-      type: .object,
+    self.parameters = Schema.object(
       properties: parameters,
-      requiredProperties: requiredParameters
+      optionalProperties: optionalParameters,
+      nullable: false
     )
   }
 }
 
-/// Helper tools that the model may use to generate response.
+/// A helper tool that the model may use when generating responses.
 ///
-/// A `Tool` is a piece of code that enables the system to interact with external systems to
-/// perform an action, or set of actions, outside of knowledge and scope of the model.
+/// A `Tool` is a piece of code that enables the system to interact with external systems to perform
+/// an action, or set of actions, outside of knowledge and scope of the model.
+@available(iOS 15.0, macOS 12.0, macCatalyst 15.0, tvOS 15.0, watchOS 8.0, *)
 public struct Tool {
   /// A list of `FunctionDeclarations` available to the model.
   let functionDeclarations: [FunctionDeclaration]?
 
-  /// Constructs a new `Tool`.
+  init(functionDeclarations: [FunctionDeclaration]?) {
+    self.functionDeclarations = functionDeclarations
+  }
+
+  /// Creates a tool that allows the model to perform function calling.
+  ///
+  /// Function calling can be used to provide data to the model that was not known at the time it
+  /// was trained (for example, the current date or weather conditions) or to allow it to interact
+  /// with external systems (for example, making an API request or querying/updating a database).
+  /// For more details and use cases, see [Introduction to function
+  /// calling](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling).
   ///
   /// - Parameters:
   ///   - functionDeclarations: A list of `FunctionDeclarations` available to the model that can be
   ///   used for function calling.
   ///   The model or system does not execute the function. Instead the defined function may be
-  ///   returned as a ``FunctionCall`` in ``ModelContent/Part/functionCall(_:)`` with arguments to
-  ///   the client side for execution. The model may decide to call a subset of these functions by
-  ///   populating ``FunctionCall`` in the response. The next conversation turn may contain a
-  ///   ``FunctionResponse`` in ``ModelContent/Part/functionResponse(_:)`` with the
-  ///   ``ModelContent/role`` "function", providing generation context for the next model turn.
-  public init(functionDeclarations: [FunctionDeclaration]?) {
-    self.functionDeclarations = functionDeclarations
+  ///   returned as a ``FunctionCallPart`` with arguments to the client side for execution. The
+  ///   model may decide to call none, some or all of the declared functions; this behavior may be
+  ///   configured by specifying a ``ToolConfig`` when instantiating the model. When a
+  ///   ``FunctionCallPart`` is received, the next conversation turn may contain a
+  ///   ``FunctionResponsePart`` in ``ModelContent/parts`` with a ``ModelContent/role`` of
+  ///   `"function"`; this response contains the result of executing the function on the client,
+  ///   providing generation context for the model's next turn.
+  public static func functionDeclarations(_ functionDeclarations: [FunctionDeclaration]) -> Tool {
+    return self.init(functionDeclarations: functionDeclarations)
   }
 }
 
 /// Configuration for specifying function calling behavior.
+@available(iOS 15.0, macOS 12.0, macCatalyst 15.0, tvOS 15.0, watchOS 8.0, *)
 public struct FunctionCallingConfig {
-  /// Defines the execution behavior for function calling by defining the
-  /// execution mode.
-  public enum Mode: String {
-    /// The default behavior for function calling. The model calls functions to answer queries at
-    /// its discretion.
+  /// Defines the execution behavior for function calling by defining the execution mode.
+  enum Mode: String {
     case auto = "AUTO"
-
-    /// The model always predicts a provided function call to answer every query.
     case any = "ANY"
-
-    /// The model will never predict a function call to answer a query. This can also be achieved by
-    /// not passing any tools to the model.
     case none = "NONE"
   }
 
-  /// Specifies the mode in which function calling should execute. If
-  /// unspecified, the default value will be set to AUTO.
+  /// Specifies the mode in which function calling should execute.
   let mode: Mode?
 
-  /// A set of function names that, when provided, limits the functions the model
-  /// will call.
-  ///
-  /// This should only be set when the Mode is ANY. Function names
-  /// should match [FunctionDeclaration.name]. With mode set to ANY, model will
-  /// predict a function call from the set of function names provided.
+  /// A set of function names that, when provided, limits the functions the model will call.
   let allowedFunctionNames: [String]?
 
-  public init(mode: FunctionCallingConfig.Mode? = nil, allowedFunctionNames: [String]? = nil) {
+  init(mode: FunctionCallingConfig.Mode? = nil, allowedFunctionNames: [String]? = nil) {
     self.mode = mode
     self.allowedFunctionNames = allowedFunctionNames
+  }
+
+  /// Creates a function calling config where the model calls functions at its discretion.
+  ///
+  /// > Note: This is the default behavior.
+  public static func auto() -> FunctionCallingConfig {
+    return FunctionCallingConfig(mode: .auto)
+  }
+
+  /// Creates a function calling config where the model will always call a provided function.
+  ///
+  ///  - Parameters:
+  ///    - allowedFunctionNames: A set of function names that, when provided, limits the functions
+  ///    that the model will call.
+  public static func any(allowedFunctionNames: [String]? = nil) -> FunctionCallingConfig {
+    return FunctionCallingConfig(mode: .any, allowedFunctionNames: allowedFunctionNames)
+  }
+
+  /// Creates a function calling config where the model will never call a function.
+  ///
+  /// > Note: This can also be achieved by not passing any ``FunctionDeclaration`` tools when
+  /// > instantiating the model.
+  public static func none() -> FunctionCallingConfig {
+    return FunctionCallingConfig(mode: FunctionCallingConfig.Mode.none)
   }
 }
 
 /// Tool configuration for any `Tool` specified in the request.
+@available(iOS 15.0, macOS 12.0, macCatalyst 15.0, tvOS 15.0, watchOS 8.0, *)
 public struct ToolConfig {
   let functionCallingConfig: FunctionCallingConfig?
 
@@ -210,50 +143,9 @@ public struct ToolConfig {
   }
 }
 
-/// Result output from a ``FunctionCall``.
-///
-/// Contains a string representing the `FunctionDeclaration.name` and a structured JSON object
-/// containing any output from the function is used as context to the model. This should contain the
-/// result of a ``FunctionCall`` made based on model prediction.
-public struct FunctionResponse: Equatable {
-  /// The name of the function that was called.
-  let name: String
-
-  /// The function's response.
-  let response: JSONObject
-
-  /// Constructs a new `FunctionResponse`.
-  ///
-  /// - Parameters:
-  ///   - name: The name of the function that was called.
-  ///   - response: The function's response.
-  public init(name: String, response: JSONObject) {
-    self.name = name
-    self.response = response
-  }
-}
-
 // MARK: - Codable Conformance
 
-extension FunctionCall: Decodable {
-  enum CodingKeys: CodingKey {
-    case name
-    case args
-  }
-
-  public init(from decoder: Decoder) throws {
-    let container = try decoder.container(keyedBy: CodingKeys.self)
-    name = try container.decode(String.self, forKey: .name)
-    if let args = try container.decodeIfPresent(JSONObject.self, forKey: .args) {
-      self.args = args
-    } else {
-      args = JSONObject()
-    }
-  }
-}
-
-extension FunctionCall: Encodable {}
-
+@available(iOS 15.0, macOS 12.0, macCatalyst 15.0, tvOS 15.0, watchOS 8.0, *)
 extension FunctionDeclaration: Encodable {
   enum CodingKeys: String, CodingKey {
     case name
@@ -269,27 +161,14 @@ extension FunctionDeclaration: Encodable {
   }
 }
 
-extension Schema: Encodable {
-  enum CodingKeys: String, CodingKey {
-    case type
-    case format
-    case description
-    case nullable
-    case enumValues = "enum"
-    case items
-    case properties
-    case requiredProperties = "required"
-  }
-}
-
-extension DataType: Encodable {}
-
+@available(iOS 15.0, macOS 12.0, macCatalyst 15.0, tvOS 15.0, watchOS 8.0, *)
 extension Tool: Encodable {}
 
+@available(iOS 15.0, macOS 12.0, macCatalyst 15.0, tvOS 15.0, watchOS 8.0, *)
 extension FunctionCallingConfig: Encodable {}
 
+@available(iOS 15.0, macOS 12.0, macCatalyst 15.0, tvOS 15.0, watchOS 8.0, *)
 extension FunctionCallingConfig.Mode: Encodable {}
 
+@available(iOS 15.0, macOS 12.0, macCatalyst 15.0, tvOS 15.0, watchOS 8.0, *)
 extension ToolConfig: Encodable {}
-
-extension FunctionResponse: Encodable {}
