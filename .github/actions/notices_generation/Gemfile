@@ -6,4 +6,4 @@ gem "octokit", "~> 4.19"
 gem "xcodeproj", "~> 1.21"
 gem "plist"
 # activesupport is locked because of https://github.com/CocoaPods/CocoaPods/issues/12081
-gem 'activesupport', '7.0.8'
+gem 'activesupport', '7.2.3.1'
